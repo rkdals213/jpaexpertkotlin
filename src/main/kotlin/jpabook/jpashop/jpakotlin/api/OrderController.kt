@@ -3,12 +3,15 @@ package jpabook.jpashop.jpakotlin.api
 import jpabook.jpashop.jpakotlin.domain.*
 import jpabook.jpashop.jpakotlin.repository.OrderRepository
 import jpabook.jpashop.jpakotlin.repository.OrderRepository2
+import jpabook.jpashop.jpakotlin.repository.query.OrderFlatDto
+import jpabook.jpashop.jpakotlin.repository.query.OrderItemQueryDto
 import jpabook.jpashop.jpakotlin.repository.query.OrderQueryDto
 import jpabook.jpashop.jpakotlin.repository.query.OrderQueryRepository
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
 import java.time.LocalDateTime
+import java.util.function.Function
 import java.util.stream.Collectors
 
 @RestController
@@ -106,6 +109,28 @@ class OrderController(
     @GetMapping("/api/v5/orders")
     fun ordersV5(): List<OrderQueryDto?>? {
         return orderQueryRepository.findAllByDto_optimization()
+    }
+
+    /**
+     * V6. JPA에서 DTO로 바로 조회, 플랫 데이터(1Query) (1 Query)
+     * * - 페이징 불가능...
+     */
+    @GetMapping("/api/v6/orders")
+    fun ordersV6(): List<OrderQueryDto?>? {
+        val flats: List<OrderFlatDto> = orderQueryRepository.findAllByDto_flat()
+
+        return flats.stream()
+            .collect(
+                Collectors.groupingBy(
+                    { o -> OrderQueryDto(o.id, o.name, o.orderDate, o.status, o.address) },
+                    Collectors.mapping(
+                        { o -> OrderItemQueryDto( o.id, o.itemName, o.orderPrice, o.count) },
+                        Collectors.toList()
+                    )
+                )
+            ).
+            map { e -> OrderQueryDto(e.key.id, e.key.name, e.key.orderDate, e.key.status, e.key.address, e.value) }
+            .toList()
     }
 
     @GetMapping("/api/v1/querydsl-orders")

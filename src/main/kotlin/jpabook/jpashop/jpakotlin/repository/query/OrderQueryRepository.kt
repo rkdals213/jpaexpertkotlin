@@ -15,7 +15,7 @@ class OrderQueryRepository(
         val result = findOrders()
         //루프를 돌면서 컬렉션 추가(추가 쿼리 실행)
         result.forEach(Consumer { o: OrderQueryDto ->
-            val orderItems: List<OrderItemQueryDto> = findOrderItems(o.orderId)
+            val orderItems: List<OrderItemQueryDto> = findOrderItems(o.id)
             o.orderItems = orderItems
         })
         return result
@@ -26,7 +26,7 @@ class OrderQueryRepository(
      */
     private fun findOrders(): List<OrderQueryDto> {
         return em.createQuery(
-            "select new jpabook.jpashop.repository.order.query.OrderQueryDto(o.id, m.name, o.orderDate, o.status, d.address)" +
+            "select new jpabook.jpashop.jpakotlin.repository.query.OrderQueryDto(o.id, m.name, o.orderDate, o.status, d.address)" +
                     " from Order o" +
                     " join o.member m" +
                     " join o.delivery d", OrderQueryDto::class.java
@@ -38,7 +38,7 @@ class OrderQueryRepository(
      */
     private fun findOrderItems(orderId: Long): List<OrderItemQueryDto> {
         return em.createQuery(
-            "select new jpabook.jpashop.repository.order.query.OrderItemQueryDto(oi.order.id, i.name, oi.orderPrice, oi.count)" +
+            "select new jpabook.jpashop.jpakotlin.repository.query.OrderItemQueryDto(oi.order.id, i.name, oi.orderPrice, oi.count)" +
                     " from OrderItem oi" +
                     " join oi.item i" +
                     " where oi.order.id = : orderId",
@@ -55,32 +55,32 @@ class OrderQueryRepository(
         val orderItemMap = findOrderItemMap(toOrderIds(result))
         //루프를 돌면서 컬렉션 추가(추가 쿼리 실행X)
         result.forEach(Consumer { o: OrderQueryDto ->
-            o.orderItems = orderItemMap.get(o.orderId)!!
+            o.orderItems = orderItemMap.get(o.id)!!
         })
         return result
     }
 
     private fun toOrderIds(result: List<OrderQueryDto>): MutableList<Any>? {
         return result.stream()
-            .map<Any>(OrderQueryDto::orderId)
+            .map<Any>(OrderQueryDto::id)
             .collect(Collectors.toList<Any>())
     }
 
     private fun findOrderItemMap(orderIds: MutableList<Any>?): Map<Long, List<OrderItemQueryDto>> {
         val orderItems = em.createQuery(
-            ("select new jpabook.jpashop.repository.order.query.OrderItemQueryDto(oi.order.id, i.name, oi.orderPrice, oi.count)" +
+            ("select new jpabook.jpashop.jpakotlin.repository.query.OrderItemQueryDto(oi.order.id, i.name, oi.orderPrice, oi.count)" +
                     " from OrderItem oi" +
                     " join oi.item i" +
                     " where oi.order.id in :orderIds"), OrderItemQueryDto::class.java
         ).setParameter("orderIds", orderIds).resultList
 
 
-        return orderItems.groupBy(OrderItemQueryDto::orderId)
+        return orderItems.groupBy(OrderItemQueryDto::id)
     }
 
     fun findAllByDto_flat(): List<OrderFlatDto> {
         return em.createQuery(
-            ("select new jpabook.jpashop.repository.order.query.OrderFlatDto(o.id, m.name, o.orderDate, o.status, d.address, i.name, oi.orderPrice, oi.count)" +
+            ("select new jpabook.jpashop.jpakotlin.repository.query.OrderFlatDto(o.id, m.name, o.orderDate, o.status, d.address, i.name, oi.orderPrice, oi.count)" +
                     " from Order o" +
                     " join o.member m" +
                     " join o.delivery d" +
